@@ -19,6 +19,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.reflections.ReflectionUtils;
 
+import util.TypeUtils;
+
 import com.google.common.primitives.Primitives;
 import com.thoughtworks.xstream.InitializationException;
 import com.wangyin.industry.fundshop.query.model.FundInfoQueryNSortRequest;

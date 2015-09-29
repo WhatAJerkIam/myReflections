@@ -1,4 +1,4 @@
-
+package deprecated;
 
 import java.beans.BeanInfo;
 import java.beans.Introspector;
@@ -15,6 +15,7 @@ import net.sf.json.JSONObject;
 
 import org.reflections.ReflectionUtils;
 
+import util.TypeUtils;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ParameterUtils {

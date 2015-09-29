@@ -6,6 +6,8 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 import org.reflections.Reflections;
 
+import util.TypeUtils;
+
 public class ClassTest {
 
     public static void main(String[] args) {
