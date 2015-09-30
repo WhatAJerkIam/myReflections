@@ -2,7 +2,6 @@
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -19,9 +18,6 @@ public class TestLone {
 
     }
 
-    public static class InnerBean2 extends ArrayList<Exception> {
-
-    }
 
     public static void main(String[] args) {
         InnerBean bean = new InnerBean();
@@ -33,8 +29,9 @@ public class TestLone {
             print(((ParameterizedType) f.getGenericType()).getActualTypeArguments());
         }
 
-        print(InnerBean2.class.getGenericInterfaces());
-        System.out.println(((ParameterizedType) InnerBean2.class.getGenericSuperclass()).getActualTypeArguments()[0]);
+        // print(InnerBean2.class.getGenericInterfaces());
+        // System.out.println(((ParameterizedType)
+        // InnerBean2.class.getGenericSuperclass()).getActualTypeArguments()[0].getClass());
     }
 
     public static void print(Object obj) {
