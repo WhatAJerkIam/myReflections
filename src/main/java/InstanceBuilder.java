@@ -4,6 +4,7 @@ import static org.reflections.ReflectionUtils.withParameters;
 import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Set;
 
@@ -133,6 +134,7 @@ public class InstanceBuilder {
         if (isNull(values2))
             return null;
 
+        // if()
         if (!TypeUtils.isArray(values2.getClass())) {
             throw new IllegalArgumentException(values2 + " is not an array of " + clz.getName());
         }
@@ -275,6 +277,9 @@ public class InstanceBuilder {
         Integer[] arr = new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
         Object array1 = con.parseArray(String[].class, arr);
         System.out.println(ReflectionToStringBuilder.toString(array1));
+
+        ArrayList<String> list = new ArrayList<String>();
+        System.out.println(ReflectionToStringBuilder.toString(list.getClass().getTypeParameters()[0]));
 
     }
 
