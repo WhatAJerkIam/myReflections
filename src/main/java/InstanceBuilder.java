@@ -1,8 +1,15 @@
+import static org.reflections.ReflectionUtils.getConstructors;
+import static org.reflections.ReflectionUtils.withParameters;
+
 import java.lang.reflect.Constructor;
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.util.Date;
 import java.util.Set;
 
 import org.apache.commons.lang.BooleanUtils;
-import org.reflections.ReflectionUtils;
+import org.apache.commons.lang.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang.time.DateUtils;
 
 import util.TypeUtils;
 
@@ -11,6 +18,8 @@ import com.wangyin.industry.fundshop.query.enums.FundQueryOrderColumn;
 import com.wangyin.industry.fundshop.query.model.FundInfoQueryNSortRequest;
 
 public class InstanceBuilder {
+    private final static String[] dateFormat = new String[] { "yyyy-MM-dd", "yyyyMMdd", "yyyy-MM-dd HH:mm:ss",
+            "yyyyMMddHHmmss" };
 
     private Class beanClass;
     private Object values;
@@ -38,6 +47,8 @@ public class InstanceBuilder {
             instance = parseMap(clz, values);
         } else if (TypeUtils.isList(clz)) {
             instance = parseList(clz, values);
+        } else if (TypeUtils.isArray(clz)) {
+            instance = parseArray(clz, values);
         } else if (clz.isInterface() || Class.class.equals(clz)) {
             // do nothing
         } else if (TypeUtils.isNumber(clz)) {
@@ -47,7 +58,6 @@ public class InstanceBuilder {
         } else {
             instance = parseBean(clz, values);
         }
-        // Set<Field> fields = ReflectionUtils.getAllFields(clz, new NoStaticFieldPredicate());
         return instance;
     }
 
@@ -57,17 +67,82 @@ public class InstanceBuilder {
     }
 
     private Object parseDate(Class clz, Object values2) {
-        return null;
+        if (isNull(values2))
+            return null;
+        if (clz.isAssignableFrom(values2.getClass())) {
+            return values2;
+        }
+        try {
+            return DateUtils.parseDateStrictly(String.valueOf(values2), dateFormat);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException(values2 + " can not be cast to " + clz.getName());
+        }
+    }
+
+    private Object parseArray(Class clz, Object values2) {
+        if (isNull(values2))
+            return null;
+        if (!TypeUtils.isArray(values2.getClass())) {
+            throw new IllegalArgumentException(values2 + " is not an array of " + clz.getName());
+        }
+        Object[] objs = (Object[]) values2;
+        Class elementClz = clz.getComponentType();
+        Object[] ret = new Object[objs.length];
+        for (int i = 0; i < objs.length; i++) {
+            ret[i] = new InstanceBuilder(elementClz, objs[i]).build();
+        }
+        return ret;
     }
 
     private Object parseNumber(Class clz, Object values2) {
-        // TODO Auto-generated method stub
+        if (isNull(values2)) {
+            return null;
+        }
+
+        if (clz.isAssignableFrom(values2.getClass())) {
+            return values2;
+        }
+
+        Object parameter = values2;
+        Constructor constructor = null;
+        Set<Constructor> constructors = getConstructors(clz, withParameters(parameter.getClass()));
+        if (!constructors.isEmpty()) {
+            constructor = (Constructor) constructors.toArray()[0];
+            try {
+                return constructor.newInstance(parameter);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(String.format("number type [%s] cannot be created , because [%s]",
+                    clz.getName(), e));
+            }
+        } else {
+            constructors = getConstructors(clz, withParameters(String.class));
+            if (!constructors.isEmpty()) {
+                constructor = (Constructor) constructors.toArray()[0];
+                try {
+                    return constructor.newInstance(String.valueOf(parameter));
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(String.format(
+                        "number type [%s] cannot be created , because [%s]", clz.getName(), e));
+                }
+            }
+        }
         return null;
     }
 
     private Object parseList(Class clz, Object values2) {
-        // TODO Auto-generated method stub
-        return null;
+        if (isNull(values2))
+            return null;
+
+        if (!TypeUtils.isArray(values2.getClass())) {
+            throw new IllegalArgumentException(values2 + " is not an array of " + clz.getName());
+        }
+        Object[] objs = (Object[]) values2;
+        Class elementClz = clz.getComponentType();
+        Object[] ret = new Object[objs.length];
+        for (int i = 0; i < objs.length; i++) {
+            ret[i] = new InstanceBuilder(elementClz, objs[i]).build();
+        }
+        return ret;
     }
 
     private Object parseMap(Class clz, Object values2) {
@@ -93,8 +168,7 @@ public class InstanceBuilder {
             }
             throw new IllegalArgumentException(values2 + " can not be cast to " + clz.getName());
         } else {
-            Set<Constructor> constructors = ReflectionUtils.getConstructors(clz,
-                ReflectionUtils.withParameters(String.class));
+            Set<Constructor> constructors = getConstructors(clz, withParameters(String.class));
             if (!constructors.isEmpty()) {
                 Constructor constructor = (Constructor) constructors.toArray()[0];
                 try {
@@ -125,7 +199,19 @@ public class InstanceBuilder {
 
     public static boolean isNull(Object obj) {
         return obj == null || "null".equalsIgnoreCase(String.valueOf(obj));
+    }
 
+    private static Constructor getConstructor(Class clz, Object values2) {
+        Set<Constructor> constructors = getConstructors(clz, withParameters(values2.getClass()));
+        if (constructors.isEmpty()) {
+            constructors = getConstructors(clz, withParameters(String.class));
+        }
+
+        if (!constructors.isEmpty()) {
+            return (Constructor) constructors.toArray()[0];
+        }
+
+        return null;
     }
 
     public static void main(String[] args) {
@@ -167,6 +253,29 @@ public class InstanceBuilder {
         System.out.println(prim521);
         Object prim621 = con.getPrimitive(Boolean.class, "FaLsE");
         System.out.println(prim621);
+
+        Object prim5212 = con.parseNumber(BigDecimal.class, BigDecimal.ZERO);
+        System.out.println(prim5212);
+        Object prim6212 = con.parseNumber(BigDecimal.class, 12345);
+        System.out.println(prim6212);
+        Object prim5213 = con.parseNumber(BigDecimal.class, "12345");
+        System.out.println(prim5213);
+        Object prim6213 = con.parseNumber(BigDecimal.class, "12345.678");
+        System.out.println(prim6213);
+
+        Object date1 = con.parseDate(Date.class, new Date());
+        System.out.println(date1);
+        Object date12 = con.parseDate(Date.class, "19860209");
+        System.out.println(date12);
+        Object date13 = con.parseDate(Date.class, "1986-2-5 13:48:3");
+        System.out.println(date13);
+        // Object date14 = con.parseDate(Date.class, "12345.678");
+        // System.out.println(date14);
+
+        Integer[] arr = new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
+        Object array1 = con.parseArray(String[].class, arr);
+        System.out.println(ReflectionToStringBuilder.toString(array1));
+
     }
 
 }
